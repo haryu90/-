@@ -28,39 +28,35 @@ async def create_ticket_panel(ctx, panel_title, options: dict, category, embed_c
 
         async def callback(self, interaction: discord.Interaction):
             label = self.values[0]
-            role_id = options[label]
-            role = interaction.guild.get_role(role_id)
+            data = options[label]
 
             if not category or not isinstance(category, discord.CategoryChannel):
                 await interaction.response.send_message("❌ 카테고리를 찾을 수 없습니다.", ephemeral=True)
                 return
 
             user_name = interaction.user.name.replace(" ", "-").lower()
-            topic = label.replace("📘", "").replace("🛍️", "").replace("🛠️","").replace("📝","").replace("🔒","").replace("📄","").replace("🎉","").replace("💡","").replace("📢","").replace("⚠️","").strip()
+            topic = label
+            for emoji in ["📘", "🛍️", "🛠️", "📝", "🔒", "📄", "🎉", "💡", "📢", "⚠️"]:
+                topic = topic.replace(emoji, "")
+            topic = topic.strip()
+
             channel_name = f"{user_name}의-{topic}채널".replace(" ", "-").lower()
 
             overwrites = {
                 interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-                role: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+                interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
             }
-    # 역할 권한 추가
-    for role_id in data.get("roles", []):
-        role = interaction.guild.get_role(role_id)
-        if role:
-            overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
 
-    # 유저 권한 추가
-    for user_id in data.get("users", []):
-        member = interaction.guild.get_member(user_id)
-        if member:
-            overwrites[member] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+            for role_id in data.get("roles", []):
+                role = interaction.guild.get_role(role_id)
+                if role:
+                    overwrites[role] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
 
-    ticket_channel = await interaction.guild.create_text_channel(
-        name=channel_name,
-        overwrites=overwrites,
-        category=category
-    )
+            for user_id in data.get("users", []):
+                member = interaction.guild.get_member(user_id)
+                if member:
+                    overwrites[member] = discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True)
+
             ticket_channel = await interaction.guild.create_text_channel(
                 name=channel_name,
                 overwrites=overwrites,
@@ -69,11 +65,11 @@ async def create_ticket_panel(ctx, panel_title, options: dict, category, embed_c
 
             embed = discord.Embed(
                 title="🎟️ 티켓이 생성되었어요!",
-                description=f"{interaction.user.mention}님, 잠시만 기다려주세요. 담당자가 곧 도와드릴게요! ",
+                description=f"{interaction.user.mention}님, 잠시만 기다려주세요. 담당자가 곧 도와드릴게요!",
                 color=embed_color
             )
             embed.set_thumbnail(url=author_icon)
-            embed.set_footer(text="문의해주셔서 감사합니다! ")
+            embed.set_footer(text="문의해주셔서 감사합니다!")
 
             await ticket_channel.send(embed=embed, view=CloseButton())
             await interaction.response.send_message(f"티켓이 생성되었습니다: {ticket_channel.mention}", ephemeral=True)
@@ -93,7 +89,8 @@ async def create_ticket_panel(ctx, panel_title, options: dict, category, embed_c
 
     await ctx.send(embed=embed, view=TicketView())
 
-# 5개의 패널 명령어
+# 각 패널별 역할/유저 ID를 넣은 예시
+
 @bot.command()
 async def 티켓패널1(ctx):
     category = ctx.channel.category
@@ -102,7 +99,10 @@ async def 티켓패널1(ctx):
         return
 
     options = {
-        "📘 신고함": [1413530966340927640, 1413530966340927640]  # 역할ID를 바꿔주세요
+        "📘 신고함": {
+            "roles": [1413530966340927640],  # 역할 ID 예시
+            "users": []
+        }
     }
     await create_ticket_panel(ctx, "말랑포켓 문의센터", options, category, embed_color=0xFFD1DC)
 
@@ -113,14 +113,16 @@ async def 티켓패널2(ctx):
         await ctx.send("❌ 이 채널은 카테고리 안에 있어야 합니다!")
         return
 
-options = {
-    "하류 문의사항": {
-        "users": [1409169549819121839]
-    },
-    "하류 구매하기": {
-        "users": [1409169549819121839]
+    options = {
+        "하류 문의사항": {
+            "roles": [],
+            "users": [1409169549819121839]  # 유저 ID 예시
+        },
+        "하류 구매하기": {
+            "roles": [],
+            "users": [1409169549819121839]
+        }
     }
-}
     await create_ticket_panel(ctx, "하류 티켓함", options, category, embed_color=0xC6E2FF)
 
 @bot.command()
@@ -130,13 +132,15 @@ async def 유메(ctx):
         await ctx.send("❌ 이 채널은 카테고리 안에 있어야 합니다!")
         return
 
-
-options = {
-    "유메 문의사항": {
-        "users": [1016659263055216661]
-    },
-    "유메 구매하기": {
-        "users": [1016659263055216661]
+    options = {
+        "유메 문의사항": {
+            "roles": [],
+            "users": [1016659263055216661]
+        },
+        "유메 구매하기": {
+            "roles": [],
+            "users": [1016659263055216661]
+        }
     }
     await create_ticket_panel(ctx, "유메 티켓함", options, category, embed_color=0xE0BBE4)
 
@@ -147,14 +151,16 @@ async def 토끼(ctx):
         await ctx.send("❌ 이 채널은 카테고리 안에 있어야 합니다!")
         return
 
-options = {
-    "토끼 문의사항": {
-        "users": [965997368975712356]
-    },
-    "토끼 구매하기": {
-        "users": [965997368975712356]
+    options = {
+        "토끼 문의사항": {
+            "roles": [],
+            "users": [965997368975712356]
+        },
+        "토끼 구매하기": {
+            "roles": [],
+            "users": [965997368975712356]
+        }
     }
-}
     await create_ticket_panel(ctx, "토끼 티켓함", options, category, embed_color=0xFFDAC1)
 
 @bot.command()
@@ -164,14 +170,16 @@ async def 몽글몽글(ctx):
         await ctx.send("❌ 이 채널은 카테고리 안에 있어야 합니다!")
         return
 
-options = {
-    "몽글몽글 문의사항": {
-        "users": [672060781289799702]
-    },
-    "몽글몽글 구매하기": {
-        "users": [672060781289799702]
+    options = {
+        "몽글몽글 문의사항": {
+            "roles": [],
+            "users": [672060781289799702]
+        },
+        "몽글몽글 구매하기": {
+            "roles": [],
+            "users": [672060781289799702]
+        }
     }
-}
     await create_ticket_panel(ctx, "몽글몽글 티켓함", options, category, embed_color=0xB5EAEA)
 
 bot.run("TOKEN__")
